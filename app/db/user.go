@@ -7,6 +7,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"martimmourao.com/template-api/input_types"
 	"martimmourao.com/template-api/types"
 	"martimmourao.com/template-api/utils"
@@ -122,4 +123,59 @@ func (r *UserRepo) VerifyEmailToken(inputVerifyEmail input_types.VerifyEmailInpu
 	})
 
 	return err
+}
+
+func (r *UserRepo) GetUserByEmail(email string) (types.User, error) {
+	usersCollection := r.MongodbClient.Database("template_api").Collection("users")
+	var user types.User
+	err := usersCollection.FindOne(r.ctx, bson.M{"email": email}).Decode(&user)
+	if err != nil {
+		return types.User{}, err
+	}
+
+	if !user.EmailConfirmed {
+		return types.User{}, fmt.Errorf("email not confirmed")
+	}
+
+	return user, nil
+}
+
+func (r *UserRepo) SaveAuthTokens(refreshToken string, accessToken string) error {
+	tokensCollection := r.MongodbClient.Database("template_api").Collection("auth_tokens")
+
+	// TTL index
+	index := mongo.IndexModel{
+		Keys:    bson.D{{"Key", "created_at"}, {"Value", 1}},
+		Options: options.Index().SetExpireAfterSeconds(int32(time.Now().Add(time.Second * 10).Unix())),
+	}
+
+	_, err := tokensCollection.Indexes().CreateOne(context.Background(), index)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	_, err = tokensCollection.InsertOne(r.ctx, types.AuthTokens{
+		RefreshToken:       refreshToken,
+		AccessToken:        accessToken,
+		ExpireAfterSeconds: 10,
+	})
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	return err
+}
+
+func (r *UserRepo) RefreshTokenExists(token string) (bool, error) {
+	tokensCoollection := r.MongodbClient.Database("template_api").Collection("auth_tokens")
+	count, err := tokensCoollection.CountDocuments(r.ctx, bson.M{"refresh_token": token})
+	if err != nil {
+		return false, err
+	}
+	if count > 0 {
+		return true, nil
+	}
+
+	return false, nil
 }

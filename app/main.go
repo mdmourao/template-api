@@ -46,5 +46,13 @@ func main() {
 		rest.VerifyEmail(ctx, userRepo)
 	})
 
+	r.POST("/login", func(ctx *gin.Context) {
+		rest.Login(ctx, userRepo)
+	})
+
+	r.POST("/refresh", func(ctx *gin.Context) {
+		rest.RefreshToken(ctx, userRepo)
+	})
+
 	r.Run(":7777")
 }

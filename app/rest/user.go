@@ -1,10 +1,14 @@
 package rest
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"martimmourao.com/template-api/db"
 	"martimmourao.com/template-api/input_types"
+	"martimmourao.com/template-api/output_types"
 	"martimmourao.com/template-api/types"
+	"martimmourao.com/template-api/utils"
 )
 
 func Register(c *gin.Context, userRepo *db.UserRepo) {
@@ -69,4 +73,93 @@ func VerifyEmail(c *gin.Context, userRepo *db.UserRepo) {
 		return
 	}
 	c.JSON(200, gin.H{"message": "ok"})
+}
+
+func Login(c *gin.Context, userRepo *db.UserRepo) {
+	loginInput := input_types.LoginInput{}
+
+	if err := c.ShouldBindJSON(&loginInput); err != nil {
+		c.JSON(400, gin.H{"error": "invalid input: not valid json"})
+		return
+	}
+
+	user, err := userRepo.GetUserByEmail(loginInput.Email)
+	if err != nil {
+		c.JSON(401, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	if !CheckPasswordHash(loginInput.Password, user.HashedPassword) {
+		c.JSON(401, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	accessToken, err := utils.CreateAccessToken(user.Email)
+	if err != nil {
+		fmt.Println(err)
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	refreshToken, err := utils.CreateRefreshToken(user.Email)
+	if err != nil {
+		fmt.Println(err)
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	err = userRepo.SaveAuthTokens(refreshToken, accessToken)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	c.JSON(200, output_types.AuthTokens{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	})
+}
+
+func RefreshToken(c *gin.Context, userRepo *db.UserRepo) {
+	refreshToken := input_types.TokenInput{}
+
+	if err := c.ShouldBindJSON(&refreshToken); err != nil {
+		c.JSON(400, gin.H{"error": "invalid input: not valid json"})
+		return
+	}
+
+	email, err := utils.ValidateToken(refreshToken.Token)
+	if err != nil {
+		fmt.Println(err)
+		c.JSON(401, gin.H{"error": "unauthorized: invalid token"})
+		return
+	}
+
+	tokenExists, err := userRepo.RefreshTokenExists(refreshToken.Token)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	if !tokenExists {
+		c.JSON(401, gin.H{"error": "unauthorized: token not found"})
+		return
+	}
+
+	newAccessToken, err := utils.CreateAccessToken(email)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	err = userRepo.SaveAuthTokens(refreshToken.Token, newAccessToken)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	c.JSON(200, output_types.AuthTokens{
+		AccessToken:  newAccessToken,
+		RefreshToken: refreshToken.Token,
+	})
 }
