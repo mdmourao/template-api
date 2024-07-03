@@ -42,5 +42,9 @@ func main() {
 		rest.Register(ctx, userRepo)
 	})
 
+	r.POST("/verify/mail", func(ctx *gin.Context) {
+		rest.VerifyEmail(ctx, userRepo)
+	})
+
 	r.Run(":7777")
 }

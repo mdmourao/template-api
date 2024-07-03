@@ -1,13 +1,23 @@
 package types
 
-import "martimmourao.com/template-api/output_types"
+import (
+	"time"
+
+	"martimmourao.com/template-api/output_types"
+)
 
 type User struct {
-	Name           string `json:"name"`
-	Email          string `json:"email"`
-	HashedPassword string `json:"hashed_password"`
-	EmailConfirmed bool   `json:"email_confirmed"`
-	OtpEnabled     bool   `json:"otp_enabled"`
+	Name           string
+	Email          string
+	HashedPassword string
+	EmailConfirmed bool
+	OtpEnabled     bool
+}
+
+type VerifyEmail struct {
+	Email     string
+	Token     string
+	CreatedAt time.Time `bson:"created_at"`
 }
 
 func (u User) ToOutModel() output_types.UserOut {

@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -28,12 +29,12 @@ func TestMongoDbConnection() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Connected to MongoDB!")
+	log.Println("Connected to MongoDB!")
 	err = client.Ping(ctx, nil)
 	if err != nil {
 		return err
 	}
-	fmt.Println("Ping to MongoDB!")
+	log.Println("Ping to MongoDB!")
 	client.Disconnect(ctx)
 	return nil
 }

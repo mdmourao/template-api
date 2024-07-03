@@ -54,3 +54,13 @@ func Register(c *gin.Context, userRepo *db.UserRepo) {
 
 	c.JSON(200, gin.H{"message": "ok"})
 }
+
+func VerifyEmail(c *gin.Context, userRepo *db.UserRepo) {
+	verifyEmailInput := input_types.VerifyEmailInput{}
+
+	if err := c.ShouldBindJSON(&verifyEmailInput); err != nil {
+		c.JSON(400, gin.H{"error": "invalid input: not valid json"})
+		return
+	}
+
+}
