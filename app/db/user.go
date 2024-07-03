@@ -2,11 +2,14 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"martimmourao.com/template-api/input_types"
 	"martimmourao.com/template-api/types"
+	"martimmourao.com/template-api/utils"
 )
 
 type UserRepo struct {
@@ -32,7 +35,6 @@ func NewUserRepo() (*UserRepo, error) {
 }
 
 func (r *UserRepo) RegisterUser(user types.User) error {
-
 	err := r.MongodbClient.UseSession(r.ctx, func(sessionContext mongo.SessionContext) error {
 		err := sessionContext.StartTransaction()
 		if err != nil {
@@ -50,10 +52,11 @@ func (r *UserRepo) RegisterUser(user types.User) error {
 
 		_, err = collection.InsertOne(sessionContext, types.VerifyEmail{
 			Email:     user.Email,
-			Token:     "123456",
+			Token:     utils.GenerateSecureToken(8),
 			CreatedAt: time.Now(),
 		})
 		if err != nil {
+			sessionContext.AbortTransaction(sessionContext)
 			return err
 		}
 
@@ -75,4 +78,48 @@ func (r *UserRepo) EmailExists(email string) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func (r *UserRepo) VerifyEmailToken(inputVerifyEmail input_types.VerifyEmailInput) error {
+	err := r.MongodbClient.UseSession(r.ctx, func(sessionContext mongo.SessionContext) error {
+		err := sessionContext.StartTransaction()
+		if err != nil {
+			return err
+		}
+
+		collection := r.MongodbClient.Database("template_api").Collection("users_email_verification")
+
+		cursor, err := collection.Find(sessionContext, bson.M{"email": inputVerifyEmail.Email, "token": inputVerifyEmail.Token})
+		if err != nil {
+			sessionContext.AbortTransaction(sessionContext)
+			return err
+		}
+
+		var results []types.VerifyEmail
+		if err = cursor.All(sessionContext, &results); err != nil {
+			sessionContext.AbortTransaction(sessionContext)
+			return err
+		}
+
+		for _, result := range results {
+			if time.Since(result.CreatedAt) > time.Hour {
+				sessionContext.AbortTransaction(sessionContext)
+				return fmt.Errorf("token expired")
+			} else {
+				collection = r.MongodbClient.Database("template_api").Collection("users")
+				_, err = collection.UpdateOne(sessionContext, bson.M{"email": inputVerifyEmail.Email}, bson.M{"$set": bson.M{"email_confirmed": true}})
+				if err != nil {
+					sessionContext.AbortTransaction(sessionContext)
+					return err
+				} else {
+					sessionContext.CommitTransaction(sessionContext)
+					return nil
+				}
+			}
+		}
+		sessionContext.CommitTransaction(sessionContext)
+		return fmt.Errorf("token not found/valid")
+	})
+
+	return err
 }

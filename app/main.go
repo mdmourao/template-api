@@ -42,7 +42,7 @@ func main() {
 		rest.Register(ctx, userRepo)
 	})
 
-	r.POST("/verify/mail", func(ctx *gin.Context) {
+	r.POST("/verify/email", func(ctx *gin.Context) {
 		rest.VerifyEmail(ctx, userRepo)
 	})
 

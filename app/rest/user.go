@@ -34,7 +34,7 @@ func Register(c *gin.Context, userRepo *db.UserRepo) {
 	}
 	if emailExists {
 		//TODO If user already exist (flow: verified?)
-		c.JSON(400, gin.H{"error": "invalid input"})
+		c.JSON(409, gin.H{"error": "email already exists"})
 		return
 	}
 
@@ -63,4 +63,10 @@ func VerifyEmail(c *gin.Context, userRepo *db.UserRepo) {
 		return
 	}
 
+	err := userRepo.VerifyEmailToken(verifyEmailInput)
+	if err != nil {
+		c.JSON(403, gin.H{"error": "Forbidden"})
+		return
+	}
+	c.JSON(200, gin.H{"message": "ok"})
 }

@@ -9,9 +9,9 @@ import (
 type User struct {
 	Name           string
 	Email          string
-	HashedPassword string
-	EmailConfirmed bool
-	OtpEnabled     bool
+	HashedPassword string `bson:"hashed_password"`
+	EmailConfirmed bool   `bson:"email_confirmed"`
+	OtpEnabled     bool   `bson:"otp_enabled"`
 }
 
 type VerifyEmail struct {
