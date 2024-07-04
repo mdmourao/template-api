@@ -23,6 +23,12 @@ type VerifyEmail struct {
 	CreatedAt time.Time `bson:"created_at"`
 }
 
+type RecoverEmail struct {
+	Email     string
+	Token     string
+	CreatedAt time.Time `bson:"created_at"`
+}
+
 type Claims struct {
 	Email string `json:"email"`
 	jwt.RegisteredClaims

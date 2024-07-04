@@ -22,6 +22,21 @@ type TokenInput struct {
 	Token string `json:"token"`
 }
 
+type NewPasswordInput struct {
+	Password string `json:"password"`
+	Token    string `json:"token"`
+}
+
+type EmailInput struct {
+	Email string `json:"email"`
+}
+
+type RecoverPasswordInput struct {
+	Email       string `json:"email"`
+	Token       string `json:"token"`
+	NewPassword string `json:"new_password"`
+}
+
 func (u UserInput) IsValid() bool {
 	if u.Name == "" || u.Email == "" || u.Password == "" {
 		return false

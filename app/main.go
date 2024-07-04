@@ -55,6 +55,14 @@ func main() {
 		rest.RefreshToken(ctx, userRepo)
 	})
 
+	r.POST("/recover/password", func(ctx *gin.Context) {
+		rest.RecoverPassword(ctx, userRepo)
+	})
+
+	r.POST("/recover/password/validate", func(ctx *gin.Context) {
+		rest.ValidateNewPassword(ctx, userRepo)
+	})
+
 	// Protected routes
 
 	r.Use(rest.AuthMiddleware(userRepo))
@@ -71,13 +79,9 @@ func main() {
 		rest.Verify2FA(ctx, userRepo)
 	})
 
-	// TODO
-
-	//1 Change password
-
-	// 3 Recover password
-
-	// Middleware login for protected routes
+	r.POST("/edit/password", func(ctx *gin.Context) {
+		rest.ChangePassword(ctx, userRepo)
+	})
 
 	r.Run(":7777")
 }

@@ -12,6 +12,11 @@ import (
 	"martimmourao.com/template-api/utils"
 )
 
+var (
+	TIME_VERIFY_EMAIL     = time.Hour
+	TIME_RECOVER_PASSWORD = time.Minute * 15
+)
+
 type UserRepo struct {
 	MongodbClient *mongo.Client
 	ctx           context.Context
@@ -67,6 +72,18 @@ func (r *UserRepo) RegisterUser(user types.User) error {
 
 }
 
+func (r *UserRepo) RecoverPassword(email, token string) error {
+	collection := r.MongodbClient.Database("template_api").Collection("users_email_recovery")
+
+	_, err := collection.InsertOne(r.ctx, types.RecoverEmail{
+		Email:     email,
+		Token:     token,
+		CreatedAt: time.Now(),
+	})
+
+	return err
+}
+
 func (r *UserRepo) EmailExists(email string) (bool, error) {
 	usersCollection := r.MongodbClient.Database("template_api").Collection("users")
 	count, err := usersCollection.CountDocuments(r.ctx, bson.M{"email": email})
@@ -102,7 +119,7 @@ func (r *UserRepo) VerifyEmailToken(inputVerifyEmail input_types.VerifyEmailInpu
 		}
 
 		for _, result := range results {
-			if time.Since(result.CreatedAt) > time.Hour {
+			if time.Since(result.CreatedAt) > TIME_VERIFY_EMAIL {
 				sessionContext.AbortTransaction(sessionContext)
 				return fmt.Errorf("token expired")
 			} else {
@@ -183,4 +200,34 @@ func (r *UserRepo) Validate2Fa(email string) error {
 	usersCollection := r.MongodbClient.Database("template_api").Collection("users")
 	_, err := usersCollection.UpdateOne(r.ctx, bson.M{"email": email}, bson.M{"$set": bson.M{"otp_verified": true}})
 	return err
+}
+
+func (r *UserRepo) ChangePassword(email, password string) error {
+	usersCollection := r.MongodbClient.Database("template_api").Collection("users")
+	_, err := usersCollection.UpdateOne(r.ctx, bson.M{"email": email}, bson.M{"$set": bson.M{"hashed_password": password}})
+	return err
+}
+
+func (r *UserRepo) GetTokenForRecoveryEmail(email, token string) (string, error) {
+	collection := r.MongodbClient.Database("template_api").Collection("users_email_recovery")
+
+	cursor, err := collection.Find(r.ctx, bson.M{"email": email, "token": token})
+	if err != nil {
+		return "", err
+	}
+
+	var results []types.RecoverEmail
+	if err = cursor.All(r.ctx, &results); err != nil {
+		return "", err
+	}
+
+	for _, result := range results {
+		if time.Since(result.CreatedAt) > TIME_RECOVER_PASSWORD {
+			return "", fmt.Errorf("token expired")
+		} else {
+			return result.Token, nil
+		}
+	}
+
+	return "", fmt.Errorf("token not found/valid")
 }

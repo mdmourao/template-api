@@ -255,3 +255,124 @@ func Auth2FA(c *gin.Context, userRepo *db.UserRepo) {
 	c.JSON(200, gin.H{"message": "ok"})
 
 }
+
+func RecoverPassword(c *gin.Context, userRepo *db.UserRepo) {
+	emailInput := input_types.EmailInput{}
+
+	if err := c.ShouldBindJSON(&emailInput); err != nil {
+		c.JSON(400, gin.H{"error": "invalid input: not valid json"})
+		return
+	}
+
+	if emailInput.Email == "" {
+		c.JSON(400, gin.H{"error": "invalid input: email required"})
+		return
+	}
+
+	user, err := userRepo.GetUserByEmail(emailInput.Email)
+	if err != nil {
+		c.JSON(404, gin.H{"error": "not found"})
+		return
+	}
+
+	err = userRepo.RecoverPassword(user.Email, utils.GenerateSecureToken(16))
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "ok"})
+
+}
+
+func ValidateNewPassword(c *gin.Context, userRepo *db.UserRepo) {
+	newPassword := input_types.RecoverPasswordInput{}
+
+	if err := c.ShouldBindJSON(&newPassword); err != nil {
+		c.JSON(400, gin.H{"error": "invalid input: not valid json"})
+		return
+	}
+
+	if newPassword.Email == "" || newPassword.Token == "" || newPassword.NewPassword == "" {
+		c.JSON(400, gin.H{"error": "invalid input: email, token and new password required"})
+		return
+	}
+
+	if len(newPassword.NewPassword) < 8 {
+		c.JSON(400, gin.H{"error": "invalid input: password too short"})
+		return
+	}
+
+	token, err := userRepo.GetTokenForRecoveryEmail(newPassword.Email, newPassword.Token)
+	if err != nil || token == "" {
+		c.JSON(404, gin.H{"error": "not found"})
+		return
+	}
+
+	if token != newPassword.Token {
+		c.JSON(401, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	hashedPassowrd, err := HashPassword(newPassword.NewPassword)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	err = userRepo.ChangePassword(newPassword.Email, hashedPassowrd)
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "ok"})
+}
+
+func ChangePassword(c *gin.Context, userRepo *db.UserRepo) {
+	newPassword := input_types.NewPasswordInput{}
+
+	if err := c.ShouldBindJSON(&newPassword); err != nil {
+		c.JSON(400, gin.H{"error": "invalid input: not valid json"})
+		return
+	}
+
+	if len(newPassword.Password) < 8 {
+		c.JSON(400, gin.H{"error": "invalid input: password too short"})
+		return
+	}
+
+	user := GetUserContext(c)
+
+	if user.OtpVerified {
+		if newPassword.Token == "" {
+			c.JSON(400, gin.H{"error": "invalid input: 2FA token required"})
+			return
+		}
+
+		isValid, err := utils.Validate2fa(newPassword.Token, user.OtpSecret)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "internal error"})
+			return
+		}
+		if !isValid {
+			c.JSON(401, gin.H{"error": "unauthorized"})
+			return
+		}
+	}
+
+	hashedPassowrd, err := HashPassword(newPassword.Password)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	err = userRepo.ChangePassword(user.Email, hashedPassowrd)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "ok"})
+}
