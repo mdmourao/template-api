@@ -7,7 +7,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"martimmourao.com/template-api/input_types"
 	"martimmourao.com/template-api/types"
 	"martimmourao.com/template-api/utils"
@@ -107,14 +106,20 @@ func (r *UserRepo) VerifyEmailToken(inputVerifyEmail input_types.VerifyEmailInpu
 				sessionContext.AbortTransaction(sessionContext)
 				return fmt.Errorf("token expired")
 			} else {
-				collection = r.MongodbClient.Database("template_api").Collection("users")
-				_, err = collection.UpdateOne(sessionContext, bson.M{"email": inputVerifyEmail.Email}, bson.M{"$set": bson.M{"email_confirmed": true}})
+				userCollection := r.MongodbClient.Database("template_api").Collection("users")
+				_, err = userCollection.UpdateOne(sessionContext, bson.M{"email": inputVerifyEmail.Email}, bson.M{"$set": bson.M{"email_confirmed": true}})
 				if err != nil {
 					sessionContext.AbortTransaction(sessionContext)
 					return err
 				} else {
-					sessionContext.CommitTransaction(sessionContext)
-					return nil
+					_, err = collection.DeleteMany(sessionContext, bson.M{"email": inputVerifyEmail.Email})
+					if err != nil {
+						sessionContext.AbortTransaction(sessionContext)
+						return err
+					} else {
+						sessionContext.CommitTransaction(sessionContext)
+						return nil
+					}
 				}
 			}
 		}
@@ -143,25 +148,12 @@ func (r *UserRepo) GetUserByEmail(email string) (types.User, error) {
 func (r *UserRepo) SaveAuthTokens(refreshToken string, accessToken string) error {
 	tokensCollection := r.MongodbClient.Database("template_api").Collection("auth_tokens")
 
-	// TTL index
-	index := mongo.IndexModel{
-		Keys:    bson.D{{"Key", "created_at"}, {"Value", 1}},
-		Options: options.Index().SetExpireAfterSeconds(int32(time.Now().Add(time.Second * 10).Unix())),
-	}
-
-	_, err := tokensCollection.Indexes().CreateOne(context.Background(), index)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-
-	_, err = tokensCollection.InsertOne(r.ctx, types.AuthTokens{
-		RefreshToken:       refreshToken,
-		AccessToken:        accessToken,
-		ExpireAfterSeconds: 10,
+	_, err := tokensCollection.InsertOne(r.ctx, types.AuthTokens{
+		RefreshToken: refreshToken,
+		AccessToken:  accessToken,
+		CreatedAt:    time.Now(),
 	})
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	return err

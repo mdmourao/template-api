@@ -29,7 +29,6 @@ type Claims struct {
 type AuthTokens struct {
 	AccessToken  string    `bson:"access_token"`
 	RefreshToken string    `bson:"refresh_token"`
-	ExpireOn     int64     `json:"expire_on" bson:"expire_on"`
 	CreatedAt    time.Time `json:"" bson:"created_at"`
 }
 

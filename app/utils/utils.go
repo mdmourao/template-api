@@ -33,7 +33,7 @@ func CreateAccessToken(email string) (string, error) {
 	claims := types.Claims{
 		Email: email,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(accessTokenMaxAge)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Issuer:    "martimmourao.com",
 		},
@@ -58,7 +58,7 @@ func CreateRefreshToken(email string) (string, error) {
 	claims := types.Claims{
 		Email: email,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 168)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Issuer:    "martimmourao.com",
 		},
