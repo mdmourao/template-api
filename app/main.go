@@ -59,7 +59,7 @@ func main() {
 		rest.RecoverPassword(ctx, userRepo)
 	})
 
-	r.POST("/recover/password/validate", func(ctx *gin.Context) {
+	r.PUT("/recover/password/validate", func(ctx *gin.Context) {
 		rest.ValidateNewPassword(ctx, userRepo)
 	})
 
@@ -79,7 +79,7 @@ func main() {
 		rest.Verify2FA(ctx, userRepo)
 	})
 
-	r.POST("/edit/password", func(ctx *gin.Context) {
+	r.PUT("/edit/password", func(ctx *gin.Context) {
 		rest.ChangePassword(ctx, userRepo)
 	})
 

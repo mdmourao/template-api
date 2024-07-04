@@ -338,7 +338,7 @@ func ChangePassword(c *gin.Context, userRepo *db.UserRepo) {
 		return
 	}
 
-	if len(newPassword.Password) < 8 {
+	if len(newPassword.NewPassword) < 8 {
 		c.JSON(400, gin.H{"error": "invalid input: password too short"})
 		return
 	}
@@ -362,7 +362,12 @@ func ChangePassword(c *gin.Context, userRepo *db.UserRepo) {
 		}
 	}
 
-	hashedPassowrd, err := HashPassword(newPassword.Password)
+	if !CheckPasswordHash(newPassword.OldPassword, user.HashedPassword) {
+		c.JSON(401, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	hashedPassowrd, err := HashPassword(newPassword.NewPassword)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "internal error"})
 		return

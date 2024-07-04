@@ -23,8 +23,9 @@ type TokenInput struct {
 }
 
 type NewPasswordInput struct {
-	Password string `json:"password"`
-	Token    string `json:"token"`
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"password"`
+	Token       string `json:"token"`
 }
 
 type EmailInput struct {
