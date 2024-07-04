@@ -2,6 +2,7 @@ package rest
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/gin-gonic/gin"
 	"martimmourao.com/template-api/db"
@@ -108,7 +109,7 @@ func Login(c *gin.Context, userRepo *db.UserRepo) {
 		return
 	}
 
-	err = userRepo.SaveAuthTokens(refreshToken, accessToken)
+	err = userRepo.SaveAuthTokens(refreshToken, accessToken, user.Email)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "internal error"})
 		return
@@ -152,7 +153,7 @@ func RefreshToken(c *gin.Context, userRepo *db.UserRepo) {
 		return
 	}
 
-	err = userRepo.SaveAuthTokens(refreshToken.Token, newAccessToken)
+	err = userRepo.SaveAuthTokens(refreshToken.Token, newAccessToken, email)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "internal error"})
 		return
@@ -162,4 +163,95 @@ func RefreshToken(c *gin.Context, userRepo *db.UserRepo) {
 		AccessToken:  newAccessToken,
 		RefreshToken: refreshToken.Token,
 	})
+}
+
+func Enable2FA(c *gin.Context, userRepo *db.UserRepo) {
+	user := GetUserContext(c)
+
+	if user.OtpEnabled {
+		c.JSON(400, gin.H{"error": "2FA already enabled"})
+		return
+	}
+
+	key, err := utils.Generate2fa(user.Email)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	err = userRepo.Save2faSecret(user.Email, key.Secret())
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	c.JSON(200, output_types.OTP{OTPAuth: key.String()})
+}
+
+func Verify2FA(c *gin.Context, userRepo *db.UserRepo) {
+	user := GetUserContext(c)
+
+	if !user.OtpEnabled || user.OtpSecret == "" {
+		log.Println(user.OtpEnabled, user.OtpSecret)
+		c.JSON(400, gin.H{"error": "2FA not enabled"})
+		return
+	}
+
+	otpInput := input_types.TokenInput{}
+
+	if err := c.ShouldBindJSON(&otpInput); err != nil {
+		c.JSON(400, gin.H{"error": "invalid input: not valid json"})
+		return
+	}
+
+	isValid, err := utils.Validate2fa(otpInput.Token, user.OtpSecret)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	if !isValid {
+		c.JSON(401, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	err = userRepo.Validate2Fa(user.Email)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "ok"})
+
+}
+
+func Auth2FA(c *gin.Context, userRepo *db.UserRepo) {
+	user := GetUserContext(c)
+
+	if !user.OtpEnabled || user.OtpSecret == "" || !user.OtpVerified {
+		log.Println(user.OtpEnabled, user.OtpSecret)
+		c.JSON(400, gin.H{"error": "2FA not enabled/verified"})
+		return
+	}
+
+	otpInput := input_types.TokenInput{}
+
+	if err := c.ShouldBindJSON(&otpInput); err != nil {
+		c.JSON(400, gin.H{"error": "invalid input: not valid json"})
+		return
+	}
+
+	isValid, err := utils.Validate2fa(otpInput.Token, user.OtpSecret)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	if !isValid {
+		c.JSON(401, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "ok"})
+
 }

@@ -145,12 +145,13 @@ func (r *UserRepo) GetUserByEmail(email string) (types.User, error) {
 	return user, nil
 }
 
-func (r *UserRepo) SaveAuthTokens(refreshToken string, accessToken string) error {
+func (r *UserRepo) SaveAuthTokens(refreshToken string, accessToken string, email string) error {
 	tokensCollection := r.MongodbClient.Database("template_api").Collection("auth_tokens")
 
 	_, err := tokensCollection.InsertOne(r.ctx, types.AuthTokens{
 		RefreshToken: refreshToken,
 		AccessToken:  accessToken,
+		Email:        email,
 		CreatedAt:    time.Now(),
 	})
 	if err != nil {
@@ -170,4 +171,16 @@ func (r *UserRepo) RefreshTokenExists(token string) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func (r *UserRepo) Save2faSecret(email, secret string) error {
+	usersCollection := r.MongodbClient.Database("template_api").Collection("users")
+	_, err := usersCollection.UpdateOne(r.ctx, bson.M{"email": email}, bson.M{"$set": bson.M{"otp_enabled": true, "otp_secret": secret}})
+	return err
+}
+
+func (r *UserRepo) Validate2Fa(email string) error {
+	usersCollection := r.MongodbClient.Database("template_api").Collection("users")
+	_, err := usersCollection.UpdateOne(r.ctx, bson.M{"email": email}, bson.M{"$set": bson.M{"otp_verified": true}})
+	return err
 }

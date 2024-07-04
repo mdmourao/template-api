@@ -21,6 +21,7 @@ func main() {
 	}
 
 	r := gin.Default()
+	r.Use(gin.Recovery())
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -53,6 +54,30 @@ func main() {
 	r.POST("/refresh", func(ctx *gin.Context) {
 		rest.RefreshToken(ctx, userRepo)
 	})
+
+	// Protected routes
+
+	r.Use(rest.AuthMiddleware(userRepo))
+
+	r.POST("/2fa", func(ctx *gin.Context) {
+		rest.Auth2FA(ctx, userRepo)
+	})
+
+	r.POST("/2fa/enable", func(ctx *gin.Context) {
+		rest.Enable2FA(ctx, userRepo)
+	})
+
+	r.POST("/2fa/verify", func(ctx *gin.Context) {
+		rest.Verify2FA(ctx, userRepo)
+	})
+
+	// TODO
+
+	//1 Change password
+
+	// 3 Recover password
+
+	// Middleware login for protected routes
 
 	r.Run(":7777")
 }

@@ -9,6 +9,9 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"martimmourao.com/template-api/types"
+
+	"github.com/pquerna/otp"
+	"github.com/pquerna/otp/totp"
 )
 
 const (
@@ -94,4 +97,21 @@ func ValidateToken(tokenString string) (string, error) {
 
 	return token.Claims.(jwt.MapClaims)["email"].(string), nil
 
+}
+
+func Generate2fa(email string) (*otp.Key, error) {
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      "martimmourao.com",
+		AccountName: email,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return key, nil
+}
+
+func Validate2fa(code, secret string) (bool, error) {
+	return totp.Validate(code, secret), nil
 }

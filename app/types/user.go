@@ -13,6 +13,8 @@ type User struct {
 	HashedPassword string `bson:"hashed_password"`
 	EmailConfirmed bool   `bson:"email_confirmed"`
 	OtpEnabled     bool   `bson:"otp_enabled"`
+	OtpSecret      string `bson:"otp_secret"`
+	OtpVerified    bool   `bson:"otp_verified"`
 }
 
 type VerifyEmail struct {
@@ -29,6 +31,7 @@ type Claims struct {
 type AuthTokens struct {
 	AccessToken  string    `bson:"access_token"`
 	RefreshToken string    `bson:"refresh_token"`
+	Email        string    `bson:"email"`
 	CreatedAt    time.Time `json:"" bson:"created_at"`
 }
 
