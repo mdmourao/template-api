@@ -39,7 +39,8 @@ func NewUserRepo() (*UserRepo, error) {
 	}, nil
 }
 
-func (r *UserRepo) RegisterUser(user types.User) error {
+func (r *UserRepo) RegisterUser(user types.User) (string, error) {
+	var token string
 	err := r.MongodbClient.UseSession(r.ctx, func(sessionContext mongo.SessionContext) error {
 		err := sessionContext.StartTransaction()
 		if err != nil {
@@ -55,9 +56,10 @@ func (r *UserRepo) RegisterUser(user types.User) error {
 
 		collection := r.MongodbClient.Database("template_api").Collection("users_email_verification")
 
+		token = utils.GenerateSecureToken(8)
 		_, err = collection.InsertOne(sessionContext, types.VerifyEmail{
 			Email:     user.Email,
-			Token:     utils.GenerateSecureToken(8),
+			Token:     token,
 			CreatedAt: time.Now(),
 		})
 		if err != nil {
@@ -68,7 +70,7 @@ func (r *UserRepo) RegisterUser(user types.User) error {
 		return sessionContext.CommitTransaction(sessionContext)
 	})
 
-	return err
+	return token, err
 
 }
 

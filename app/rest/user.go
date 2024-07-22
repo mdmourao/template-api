@@ -8,6 +8,7 @@ import (
 	"martimmourao.com/template-api/db"
 	"martimmourao.com/template-api/input_types"
 	"martimmourao.com/template-api/output_types"
+	"martimmourao.com/template-api/smtp"
 	"martimmourao.com/template-api/types"
 	"martimmourao.com/template-api/utils"
 )
@@ -51,7 +52,13 @@ func Register(c *gin.Context, userRepo *db.UserRepo) {
 		OtpEnabled:     false,
 	}
 
-	err = userRepo.RegisterUser(user)
+	token, err := userRepo.RegisterUser(user)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	err = smtp.SendToken(user.Email, token)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "internal error"})
 		return
@@ -275,7 +282,14 @@ func RecoverPassword(c *gin.Context, userRepo *db.UserRepo) {
 		return
 	}
 
-	err = userRepo.RecoverPassword(user.Email, utils.GenerateSecureToken(16))
+	token := utils.GenerateSecureToken(16)
+	err = userRepo.RecoverPassword(user.Email, token)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	err = smtp.SendToken(user.Email, token)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "internal error"})
 		return
