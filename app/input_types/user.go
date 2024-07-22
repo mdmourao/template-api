@@ -13,6 +13,31 @@ type VerifyEmailInput struct {
 	Token string `json:"token"`
 }
 
+type LoginInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type TokenInput struct {
+	Token string `json:"token"`
+}
+
+type NewPasswordInput struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"password"`
+	Token       string `json:"token"`
+}
+
+type EmailInput struct {
+	Email string `json:"email"`
+}
+
+type RecoverPasswordInput struct {
+	Email       string `json:"email"`
+	Token       string `json:"token"`
+	NewPassword string `json:"new_password"`
+}
+
 func (u UserInput) IsValid() bool {
 	if u.Name == "" || u.Email == "" || u.Password == "" {
 		return false

@@ -4,7 +4,9 @@ go 1.22
 
 require (
 	github.com/gin-gonic/gin v1.10.0
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/joho/godotenv v1.5.1
+	github.com/pquerna/otp v1.4.0
 	go.mongodb.org/mongo-driver v1.16.0
 	golang.org/x/crypto v0.23.0
 )
@@ -13,6 +15,7 @@ require github.com/jmespath/go-jmespath v0.4.0 // indirect
 
 require (
 	github.com/aws/aws-sdk-go v1.54.20
+	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
