@@ -55,6 +55,8 @@ func main() {
 		rest.RefreshToken(ctx, userRepo)
 	})
 
+	// Recover password
+
 	r.POST("/recover/password", func(ctx *gin.Context) {
 		rest.RecoverPassword(ctx, userRepo)
 	})
