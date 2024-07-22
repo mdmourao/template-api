@@ -10,6 +10,11 @@ import (
 	"martimmourao.com/template-api/rest"
 )
 
+// TODO
+// Limit the number of tries to register and recover password (lock account 1, 5, 10, 15, 20 minutes)
+// Limit 2FA retries (lock account 1, 5, 10, 15, 20 minutes)
+// SMTP email origin (SPAM alert)
+
 func main() {
 	if err := godotenv.Load("../.dev/dev.env"); err != nil {
 		log.Fatal(".env file not found")
