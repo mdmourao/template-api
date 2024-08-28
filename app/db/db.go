@@ -29,12 +29,12 @@ func TestMongoDbConnection() error {
 	if err != nil {
 		return err
 	}
-	log.Println("Connected to MongoDB!")
+	log.Println("Connected to MongoDB, trying to Ping...")
 	err = client.Ping(ctx, nil)
 	if err != nil {
 		return err
 	}
-	log.Println("Ping to MongoDB!")
+	log.Println("Ping: OK to MongoDB!")
 	client.Disconnect(ctx)
 	return nil
 }
