@@ -192,6 +192,19 @@ func (r *UserRepo) RefreshTokenExists(token string) (bool, error) {
 	return false, nil
 }
 
+func (r *UserRepo) AccessTokenExists(token string) (bool, error) {
+	tokensCoollection := r.MongodbClient.Database("template_api").Collection("auth_tokens")
+	count, err := tokensCoollection.CountDocuments(r.ctx, bson.M{"access_token": token})
+	if err != nil {
+		return false, err
+	}
+	if count > 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func (r *UserRepo) DeleteRefreshToken(token string) error {
 	tokensCollection := r.MongodbClient.Database("template_api").Collection("auth_tokens")
 	_, err := tokensCollection.DeleteMany(r.ctx, bson.M{"refresh_token": token})

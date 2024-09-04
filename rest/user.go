@@ -197,21 +197,20 @@ func Logout(c *gin.Context, userRepo *db.UserRepo) {
 }
 
 func RefreshToken(c *gin.Context, userRepo *db.UserRepo) {
-	refreshToken := input_types.TokenInput{}
-
-	if err := c.ShouldBindJSON(&refreshToken); err != nil {
-		c.JSON(400, gin.H{"error": "invalid input: not valid json"})
+	refreshToken, err := c.Cookie("refresh_token")
+	if err != nil {
+		c.JSON(401, gin.H{"error": "unauthorized"})
 		return
 	}
 
-	email, err := utils.ValidateToken(refreshToken.Token)
+	email, err := utils.ValidateToken(refreshToken)
 	if err != nil {
 		fmt.Println(err)
 		c.JSON(401, gin.H{"error": "unauthorized: invalid token"})
 		return
 	}
 
-	tokenExists, err := userRepo.RefreshTokenExists(refreshToken.Token)
+	tokenExists, err := userRepo.RefreshTokenExists(refreshToken)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "internal error"})
 		return
@@ -228,7 +227,7 @@ func RefreshToken(c *gin.Context, userRepo *db.UserRepo) {
 		return
 	}
 
-	err = userRepo.SaveAuthTokens(refreshToken.Token, newAccessToken, email)
+	err = userRepo.SaveAuthTokens(refreshToken, newAccessToken, email)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "internal error"})
 		return
@@ -236,7 +235,7 @@ func RefreshToken(c *gin.Context, userRepo *db.UserRepo) {
 
 	c.JSON(200, output_types.AuthTokens{
 		AccessToken:  newAccessToken,
-		RefreshToken: refreshToken.Token,
+		RefreshToken: refreshToken,
 	})
 }
 
@@ -468,5 +467,5 @@ func GetSessionInfo(c *gin.Context, userRepo *db.UserRepo) {
 	user := GetUserContext(c)
 	user.HashedPassword = ""
 
-	c.JSON(200, user)
+	c.JSON(200, user.ToOutModel())
 }
