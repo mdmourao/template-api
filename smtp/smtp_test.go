@@ -9,7 +9,7 @@ import (
 )
 
 func TestEmailSend(t *testing.T) {
-	if err := godotenv.Load("../../.dev/dev.env"); err != nil {
+	if err := godotenv.Load("../.dev/dev.env"); err != nil {
 		log.Fatal(".env file not found")
 	}
 

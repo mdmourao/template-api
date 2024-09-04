@@ -26,7 +26,7 @@ const (
 )
 
 func main() {
-	if err := godotenv.Load("../.dev/dev.env"); err != nil {
+	if err := godotenv.Load(".dev/dev.env"); err != nil {
 		log.Fatal(".env file not found")
 	}
 
