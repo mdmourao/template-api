@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	ORIGIN = "http://localhost"
+	ORIGIN = "localhost"
 )
 
 func Register(c *gin.Context, userRepo *db.UserRepo) {

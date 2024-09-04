@@ -19,6 +19,8 @@ import (
 // SMTP email origin (SPAM alert)
 
 // TODO save this on ENV!
+// TODO issue on origin on cookie!
+// net/http: invalid Cookie.Domain "http://localhost"; dropping domain attribute
 const (
 	ORIGIN = "http://localhost"
 )
@@ -37,8 +39,9 @@ func main() {
 	r.Use(gin.Recovery())
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{ORIGIN},
+		AllowOrigins:     []string{"http://localhost:3000"},
 		AllowCredentials: true,
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		MaxAge:           12 * time.Hour,
 	}))
 
