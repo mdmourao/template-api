@@ -3,8 +3,11 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+
 	"github.com/joho/godotenv"
 	"martimmourao.com/template-api/db"
 	"martimmourao.com/template-api/rest"
@@ -14,6 +17,11 @@ import (
 // Limit the number of tries to register and recover password (lock account 1, 5, 10, 15, 20 minutes)
 // Limit 2FA retries (lock account 1, 5, 10, 15, 20 minutes)
 // SMTP email origin (SPAM alert)
+
+// TODO save this on ENV!
+const (
+	ORIGIN = "http://localhost"
+)
 
 func main() {
 	if err := godotenv.Load("../.dev/dev.env"); err != nil {
@@ -27,6 +35,12 @@ func main() {
 
 	r := gin.Default()
 	r.Use(gin.Recovery())
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{ORIGIN},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -56,8 +70,16 @@ func main() {
 		rest.Login(ctx, userRepo)
 	})
 
+	r.GET("/auth-status", func(ctx *gin.Context) {
+		rest.AuthStatus(ctx, userRepo)
+	})
+
 	r.POST("/refresh", func(ctx *gin.Context) {
 		rest.RefreshToken(ctx, userRepo)
+	})
+
+	r.POST("/logout", func(ctx *gin.Context) {
+		rest.Logout(ctx, userRepo)
 	})
 
 	// Recover password

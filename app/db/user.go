@@ -192,6 +192,12 @@ func (r *UserRepo) RefreshTokenExists(token string) (bool, error) {
 	return false, nil
 }
 
+func (r *UserRepo) DeleteRefreshToken(token string) error {
+	tokensCollection := r.MongodbClient.Database("template_api").Collection("auth_tokens")
+	_, err := tokensCollection.DeleteMany(r.ctx, bson.M{"refresh_token": token})
+	return err
+}
+
 func (r *UserRepo) Save2faSecret(email, secret string) error {
 	usersCollection := r.MongodbClient.Database("template_api").Collection("users")
 	_, err := usersCollection.UpdateOne(r.ctx, bson.M{"email": email}, bson.M{"$set": bson.M{"otp_enabled": true, "otp_secret": secret}})

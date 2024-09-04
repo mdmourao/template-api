@@ -13,6 +13,10 @@ import (
 	"martimmourao.com/template-api/utils"
 )
 
+const (
+	ORIGIN = "http://localhost"
+)
+
 func Register(c *gin.Context, userRepo *db.UserRepo) {
 	inputUser := input_types.UserInput{}
 
@@ -83,6 +87,33 @@ func VerifyEmail(c *gin.Context, userRepo *db.UserRepo) {
 	c.JSON(200, gin.H{"message": "ok"})
 }
 
+func AuthStatus(c *gin.Context, userRepo *db.UserRepo) {
+	refreshToken, err := c.Cookie("refresh_token")
+	if err != nil {
+		c.JSON(401, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	_, err = utils.ValidateToken(refreshToken)
+	if err != nil {
+		c.JSON(401, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	tokenExists, err := userRepo.RefreshTokenExists(refreshToken)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	if !tokenExists {
+		c.JSON(401, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "ok"})
+}
+
 func Login(c *gin.Context, userRepo *db.UserRepo) {
 	loginInput := input_types.LoginInput{}
 
@@ -122,10 +153,47 @@ func Login(c *gin.Context, userRepo *db.UserRepo) {
 		return
 	}
 
+	c.SetCookie("refresh_token", refreshToken, 1000*60*60*24*14, "/", ORIGIN, true, true)
+
 	c.JSON(200, output_types.AuthTokens{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	})
+}
+
+func Logout(c *gin.Context, userRepo *db.UserRepo) {
+	refreshToken, err := c.Cookie("refresh_token")
+	if err != nil {
+		c.JSON(401, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	_, err = utils.ValidateToken(refreshToken)
+	if err != nil {
+		c.JSON(401, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	tokenExists, err := userRepo.RefreshTokenExists(refreshToken)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	if !tokenExists {
+		c.JSON(401, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	err = userRepo.DeleteRefreshToken(refreshToken)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal error"})
+		return
+	}
+
+	c.SetCookie("refresh_token", "", -1, "/", ORIGIN, true, true)
+
+	c.JSON(200, gin.H{"message": "ok"})
 }
 
 func RefreshToken(c *gin.Context, userRepo *db.UserRepo) {
