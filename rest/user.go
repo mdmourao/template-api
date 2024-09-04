@@ -463,3 +463,10 @@ func ChangePassword(c *gin.Context, userRepo *db.UserRepo) {
 
 	c.JSON(200, gin.H{"message": "ok"})
 }
+
+func GetSessionInfo(c *gin.Context, userRepo *db.UserRepo) {
+	user := GetUserContext(c)
+	user.HashedPassword = ""
+
+	c.JSON(200, user)
+}

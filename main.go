@@ -115,5 +115,9 @@ func main() {
 		rest.ChangePassword(ctx, userRepo)
 	})
 
+	r.GET("/session", func(ctx *gin.Context) {
+		rest.GetSessionInfo(ctx, userRepo)
+	})
+
 	r.Run(":7777")
 }
